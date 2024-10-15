@@ -1,0 +1,3 @@
+Hello coder, this is text for replace spaces.
+The second line.
+The third line.
