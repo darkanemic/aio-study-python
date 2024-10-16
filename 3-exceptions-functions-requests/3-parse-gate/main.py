@@ -33,7 +33,7 @@ for currency_pair in query_param:
             else:
                 print(f"Произошла HTTP ошибка с кодом {status_code}.")
         else:
-            print("Ошибка HTTP, но ответ не был получен.")
+            print(f"Ошибка HTTP {http_error}")
     except requests.exceptions.ConnectionError as error:
         print(f'Ошибка соединения: {error}')
     except requests.exceptions.Timeout as error:
