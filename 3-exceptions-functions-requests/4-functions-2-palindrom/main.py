@@ -7,7 +7,7 @@ def is_palindrome(text_to_check):
     return text_to_check == reverse
 
 
-income_text = input('Введите строку и мы проверим является ли она: ')
+income_text = input('Введите строку и мы проверим является ли она палидромом: ')
 if is_palindrome(clean_text(income_text)):
     print('Даная строка является палидромом.')
 else:
