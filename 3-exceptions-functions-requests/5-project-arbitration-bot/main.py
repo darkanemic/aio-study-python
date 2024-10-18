@@ -1,10 +1,6 @@
 import requests
 import json
-
-
-def clean_string(s):
-    cleaned = ''.join(char for char in s if char.isalnum())
-    return cleaned
+import time
 
 
 def handle_http_error(http_error):
@@ -49,7 +45,7 @@ def fetch_exchange_data(exchange_api_url):
 
 def dump_json_to_file(json_data, filename, message):
     try:
-        with open(filename, 'w') as file:
+        with open(filename, 'w', encoding='utf-8') as file:
             json.dump(json_data, file, ensure_ascii=False, indent=4)
             if message:
                 print(message)
@@ -68,30 +64,58 @@ def load_json_from_file(filename):
     return data
 
 
+def normalize_symbol(symbol):
+    return symbol.replace('-', '').upper()
+
+
 def calculate_spreads(kucoin_exchange_data, binance_exchange_data, kucoin_prices_data):
     spreads_data = []
-    for kucoin_pair in kucoin_exchange_data['data']['ticker']:
-        for binance_pair in binance_exchange_data:
-            if clean_string(kucoin_pair['symbol']) == binance_pair['symbol']:  # Найдены пары на обейх биржах
-                spread = float(kucoin_pair['last']) - float(binance_pair['price'])
-                quote_currency = kucoin_pair['symbol'].split('-')
-                spread_usd = spread * float(kucoin_prices_data['data'][quote_currency[1]])
-                kucoin_price = float(kucoin_pair['last']) * float(kucoin_prices_data['data'][quote_currency[1]])
-                binance_price = float(binance_pair['price']) * float(kucoin_prices_data['data'][quote_currency[1]])
-                if spread > 0:
-                    direction = 'Binance>Kucoin'
-                elif spread < 0:
-                    direction = 'Kucoin>Binance'
-                else:
-                    direction = 'Цены на биржах равны'
-                spreads_data.append({
-                    'kucoin_ticker': kucoin_pair['symbol'],
-                    'binance_ticker': binance_pair['symbol'],
-                    'kucoin_price': kucoin_price,
-                    'binance_price': binance_price,
-                    'spread_usd': spread_usd,
-                    'direction': direction
-                })
+    kucoin_tickers = {normalize_symbol(pair['symbol']): pair for pair in kucoin_exchange_data['data']['ticker']}
+    binance_tickers = {pair['symbol'].upper(): pair for pair in binance_exchange_data}
+
+    # Находим общие символы
+    common_tickers = set(kucoin_tickers.keys()) & set(binance_tickers.keys())
+
+    for symbol in common_tickers:
+        kucoin_pair = kucoin_tickers[symbol]
+        binance_pair = binance_tickers[symbol]
+        base_currency, quote_currency = kucoin_pair['symbol'].split('-')
+
+        # Получаем цены котируемой валюты
+        quote_currency_price = kucoin_prices_data['data'].get(quote_currency)
+        if quote_currency_price is None:
+            print(f'Не удалось найти котировку {quote_currency}. Торговая пара {symbol} не будет обработана.')
+            quote_currency_price = 0
+
+        # Преобразуем цены в USD
+        try:
+            kucoin_price = float(kucoin_pair['last']) * float(quote_currency_price)
+            binance_price = float(binance_pair['price']) * float(quote_currency_price)
+        except ValueError:
+            print(f'Не удалось получить цену в долларах для торговой пары {symbol}. Она не будет обработана.')
+            kucoin_price = 0
+            binance_price = 0
+
+        # Рассчитываем спред и направление
+        spread = kucoin_price - binance_price
+        spread_usd = abs(spread)
+
+        if spread > 0:
+            direction = 'Binance>Kucoin'
+        elif spread < 0:
+            direction = 'Kucoin>Binance'
+        else:
+            direction = 'Цены на биржах равны'
+
+        spreads_data.append({
+            'kucoin_ticker': kucoin_pair['symbol'],
+            'binance_ticker': binance_pair['symbol'],
+            'kucoin_price': kucoin_price,
+            'binance_price': binance_price,
+            'spread_usd': spread_usd,
+            'direction': direction
+        })
+
     return spreads_data
 
 
@@ -129,7 +153,7 @@ def display_top_spreads(spreads_to_display, my_spread_threshold, num_top_pairs):
 
         print(
             f"{index:<4} {item['kucoin_ticker']:<12} {item['direction']:<20} {buy_price:<15.2f} "
-            f"{sell_price:<15.2f} {abs(item['spread_usd']):<10.2f} {profitable:<15}")
+            f"{sell_price:<15.2f} {item['spread_usd']:<10.2f} {profitable:<15}")
     print_line()
     print(f'Всего сравнили {len(spreads_to_display)} торговых пар. Найдено {profitable_pairs} выгодных сделок.')
     print_line()
