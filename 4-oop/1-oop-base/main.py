@@ -16,16 +16,13 @@ class Banana(Fruit):
         print(f'{self.name} мягкий.')
 
 
-# Создание экземпляра класса Fruit
 fruit = Fruit(name="Фрукт")
-print(fruit.get_name())  # Вывод: Фрукт
+print(fruit.get_name())
 
-# Создание экземпляра класса Apple
 apple = Apple(name="Яблоко")
-print(apple.get_name())  # Вывод: Яблоко
-apple.taste()  # Вывод: Яблоко сладкое
+print(apple.get_name())
+apple.taste()
 
-# Создание экземпляра класса Banana
 banana = Banana(name="Банан")
-print(banana.get_name())  # Вывод: Банан
-banana.taste()  # Вывод: Банан мягки
+print(banana.get_name())
+banana.taste()
