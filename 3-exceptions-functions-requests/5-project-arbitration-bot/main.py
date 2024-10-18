@@ -1,4 +1,5 @@
 import requests
+import json
 
 
 def clean_string(s):
@@ -46,6 +47,19 @@ def fetch_exchange_data(exchange_api_url):
     return data
 
 
+def dump_json_to_file(json_data, filename, message):
+    with open(filename, 'w') as file:
+        json.dump(json_data, file, ensure_ascii=False, indent=4)
+        if message:
+            print(message)
+
+
+def load_json_from_file(filename):
+    with open(filename, 'r') as file:
+        data = json.load(file)
+    return data
+
+
 def calculate_spreads(kucoin_exchange_data, binance_exchange_data):
     spreads_data = []
     for kucoin_pair in kucoin_exchange_data['data']['ticker']:
@@ -78,13 +92,19 @@ def spreads_data_ranking(spreads_data):
     return ranked_data
 
 
-def display_top_ten_spreads(spreads_to_display):
+def print_line():
+    print("-" * 101)
+
+
+def display_top_ten_spreads(spreads_to_display, my_spread_threshold):
     top_10 = spreads_to_display[:10]
-    print("-" * 80)
-    print("Вот 10 самых выгодных пар для арбитража между биржами Binance и Kucoin.")
-    print("-" * 80)
-    print(f"{'№':<4} {'Пара':<12} {'Направление':<20} {'Цена покупки $':<15} {'Цена продажи $':<15} {'Профит $':<10}")
-    print("-" * 80)
+    profitable_pairs = 0
+    print_line()
+    print("Вот 10 пар с самым большим спредом между биржами Binance и Kucoin.")
+    print_line()
+    print(f"{'№':<4} {'Пара':<12} {'Направление':<20} {'Цена покупки $':<15} {'Цена продажи $':<15}"
+          f" {'Профит $':<10} {'Спред превышает':<15} {my_spread_threshold}$")
+    print_line()
 
     for index, item in enumerate(top_10, start=1):
         if item['direction'] == 'Binance>Kucoin':
@@ -93,23 +113,38 @@ def display_top_ten_spreads(spreads_to_display):
         else:
             buy_price = item['kucoin_price']
             sell_price = item['binance_price']
+        if item['spread_usd'] > my_spread_threshold:
+            profitable = '✅'
+            profitable_pairs += 1
+        else:
+            profitable = '❌'
 
         print(
             f"{index:<4} {item['kucoin_ticker']:<12} {item['direction']:<20} {buy_price:<15.2f} "
-            f"{sell_price:<15.2f} {item['spread_usd']:<10.2f}")
-    print("-" * 80)
-    print(f'Всего сравнили {len(spreads_to_display)} торговых пар.')
-    print("-" * 80)
+            f"{sell_price:<15.2f} {item['spread_usd']:<10.2f} {profitable:<15}")
+    print_line()
+    print(f'Всего сравнили {len(spreads_to_display)} торговых пар. Найдено {profitable_pairs} выгодных сделок.')
+    print_line()
 
 
 kucoin_tickers_url = "https://api.kucoin.com/api/v1/market/allTickers"
 kucoin_prices_url = "https://api.kucoin.com/api/v1/prices"
 binance_tickers_url = "https://api.binance.com/api/v3/ticker/price"
 
-kucoin_data = fetch_exchange_data(kucoin_tickers_url)
-kucoin_prices_data = fetch_exchange_data(kucoin_prices_url)
-binance_data = fetch_exchange_data(binance_tickers_url)
+kucoin_json = fetch_exchange_data(kucoin_tickers_url)
+kucoin_fiat_prices_json = fetch_exchange_data(kucoin_prices_url)
+binance_json = fetch_exchange_data(binance_tickers_url)
+
+dump_json_to_file(kucoin_json, 'kucoin_prices.json', 'Данные цен по парам биржи Kucoin сохранены в файл kucoin_prices.json')
+dump_json_to_file(kucoin_fiat_prices_json, 'kucoin_fiat_prices.json', 'Данные фиатных цен по парам биржи Kucoin сохранены в файл kucoin_fiat_prices.json')
+dump_json_to_file(binance_json, 'binance_prices.json', 'Данные цен по парам биржи Binance сохранены в файл binance_prices.json')
+
+kucoin_data = load_json_from_file('kucoin_prices.json')
+kucoin_prices_data = load_json_from_file('kucoin_fiat_prices.json')
+binance_data = load_json_from_file('binance_prices.json')
+
+spread_threshold = 15  # Порог спреда, после которого арбитраж становится интересным
 
 exchanges_spreads = calculate_spreads(kucoin_data, binance_data)
 ranked_spreads = spreads_data_ranking(exchanges_spreads)
-display_top_ten_spreads(ranked_spreads)
+display_top_ten_spreads(ranked_spreads, spread_threshold)
