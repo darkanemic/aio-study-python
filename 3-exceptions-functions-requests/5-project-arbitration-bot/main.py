@@ -3,7 +3,7 @@ import json
 
 
 def clean_string(s):
-    cleaned = ''.join(char for char in s if char.isalpha())
+    cleaned = ''.join(char for char in s if char.isalnum())
     return cleaned
 
 
@@ -68,7 +68,7 @@ def load_json_from_file(filename):
     return data
 
 
-def calculate_spreads(kucoin_exchange_data, binance_exchange_data):
+def calculate_spreads(kucoin_exchange_data, binance_exchange_data, kucoin_prices_data):
     spreads_data = []
     for kucoin_pair in kucoin_exchange_data['data']['ticker']:
         for binance_pair in binance_exchange_data:
@@ -148,11 +148,11 @@ dump_json_to_file(kucoin_fiat_prices_json, 'kucoin_fiat_prices.json', 'Данн�
 dump_json_to_file(binance_json, 'binance_prices.json', 'Данные цен по парам биржи Binance сохранены в файл binance_prices.json')
 
 kucoin_data = load_json_from_file('kucoin_prices.json')
-kucoin_prices_data = load_json_from_file('kucoin_fiat_prices.json')
+kucoin_prices = load_json_from_file('kucoin_fiat_prices.json')
 binance_data = load_json_from_file('binance_prices.json')
 
-spread_threshold = 20  # Порог спреда, после которого арбитраж становится интересным
+spread_threshold = 15  # Порог спреда, после которого арбитраж становится интересным
 
-exchanges_spreads = calculate_spreads(kucoin_data, binance_data)
+exchanges_spreads = calculate_spreads(kucoin_data, binance_data, kucoin_prices)
 ranked_spreads = spreads_data_ranking(exchanges_spreads)
 display_top_spreads(ranked_spreads, spread_threshold, 30)
