@@ -51,7 +51,8 @@ def dump_json_to_file(json_data, filename, message):
             if message:
                 print(message)
     except OSError as error:
-        print(f'Ошибка {error} при записи файла {filename}')
+        print(f'Ошибка {error} при записи файла {filename}. Возможно не хватает прав доступа. Программа завершена.')
+        exit()
 
 
 def load_json_from_file(filename):
@@ -59,7 +60,8 @@ def load_json_from_file(filename):
         with open(filename, 'r') as file:
             data = json.load(file)
     except FileNotFoundError:
-        print(f'Файл {filename} по указанному пути не найден. Пожалуйста, проверьте путь и повторите попытку.')
+        print(f'Файл {filename} по указанному пути не найден. Пожалуйста, проверьте путь и права доступа, затем запустите заново.')
+        exit()
     else:
         print(f'Файл {filename} найден и загружен успешно!')
     return data
@@ -163,7 +165,7 @@ def display_top_spreads(spreads_to_display, my_spread_threshold, num_top_pairs):
     print_line()
 
 
-def main():
+def main(spread_threshold, numbers_of_pairs):
     #  Получим данные бирж.
     kucoin_tickers_url = "https://api.kucoin.com/api/v1/market/allTickers"
     kucoin_prices_url = "https://api.kucoin.com/api/v1/prices"
@@ -185,14 +187,15 @@ def main():
     kucoin_prices = load_json_from_file('kucoin_fiat_prices.json')
     binance_data = load_json_from_file('binance_prices.json')
 
-    spread_threshold = 10  # Порог спреда, после которого арбитраж становится интересным.
-    number_pairs_in_top = 30  # Количество торговых пар в топе.
-
     # Расчет спредов > ранжирование спредов > вывод топа пар для спреда.
     exchanges_spreads = calculate_spreads(kucoin_data, binance_data, kucoin_prices)
     ranked_spreads = spreads_data_ranking(exchanges_spreads)
-    display_top_spreads(ranked_spreads, spread_threshold, number_pairs_in_top)
+    display_top_spreads(ranked_spreads, spread_threshold, numbers_of_pairs)
 
 
 if __name__ == '__main__':
-    main()
+
+    spread_threshold = 10  # Порог спреда в $, после которого арбитраж становится интересным.
+    number_of_pairs_in_top = 30  # Количество торговых пар в топе.
+
+    main(spread_threshold, number_of_pairs_in_top)
