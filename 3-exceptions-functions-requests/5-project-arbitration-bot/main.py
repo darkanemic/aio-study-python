@@ -2,7 +2,6 @@ import requests
 import json
 import time
 
-
 def handle_http_error(http_error):
     status_code = http_error.response.status_code if http_error.response else None
     if status_code == 400:
@@ -24,14 +23,16 @@ def handle_http_error(http_error):
 
 
 def fetch_exchange_data(exchange_api_url):
-    response = requests.get(exchange_api_url)
     try:
+        response = requests.get(exchange_api_url)
         response.raise_for_status()
         data = response.json()
         if data:
             print(f'Ответ на запрос {exchange_api_url} получен.')
+            return data
         else:
             print('Ответ от сервера пуст.')
+            return None
     except requests.exceptions.HTTPError as http_error:
         handle_http_error(http_error)
     except requests.exceptions.ConnectionError as error:
@@ -40,7 +41,7 @@ def fetch_exchange_data(exchange_api_url):
         print(f'Превышено время ожидания: {error}')
     except requests.exceptions.RequestException as error:
         print(f'Произошла ошибка при попытке запроса: {error}')
-    return data
+    return None
 
 
 def dump_json_to_file(json_data, filename, message):
@@ -73,7 +74,7 @@ def calculate_spreads(kucoin_exchange_data, binance_exchange_data, kucoin_prices
     kucoin_tickers = {normalize_symbol(pair['symbol']): pair for pair in kucoin_exchange_data['data']['ticker']}
     binance_tickers = {pair['symbol'].upper(): pair for pair in binance_exchange_data}
 
-    # Находим общие символы
+    # Находим общие тикеры
     common_tickers = set(kucoin_tickers.keys()) & set(binance_tickers.keys())
 
     for symbol in common_tickers:
@@ -85,7 +86,7 @@ def calculate_spreads(kucoin_exchange_data, binance_exchange_data, kucoin_prices
         quote_currency_price = kucoin_prices_data['data'].get(quote_currency)
         if quote_currency_price is None:
             print(f'Не удалось найти котировку {quote_currency}. Торговая пара {symbol} не будет обработана.')
-            quote_currency_price = 0
+            continue
 
         # Преобразуем цены в USD
         try:
@@ -93,8 +94,7 @@ def calculate_spreads(kucoin_exchange_data, binance_exchange_data, kucoin_prices
             binance_price = float(binance_pair['price']) * float(quote_currency_price)
         except ValueError:
             print(f'Не удалось получить цену в долларах для торговой пары {symbol}. Она не будет обработана.')
-            kucoin_price = 0
-            binance_price = 0
+            continue
 
         # Рассчитываем спред и направление
         spread = kucoin_price - binance_price
@@ -106,6 +106,10 @@ def calculate_spreads(kucoin_exchange_data, binance_exchange_data, kucoin_prices
             direction = 'Kucoin>Binance'
         else:
             direction = 'Цены на биржах равны'
+
+        # if symbol == 'BULLUSDT':
+        #     print(kucoin_price, binance_price, spread_usd)
+        #     time.sleep(20)
 
         spreads_data.append({
             'kucoin_ticker': kucoin_pair['symbol'],
@@ -159,24 +163,36 @@ def display_top_spreads(spreads_to_display, my_spread_threshold, num_top_pairs):
     print_line()
 
 
-kucoin_tickers_url = "https://api.kucoin.com/api/v1/market/allTickers"
-kucoin_prices_url = "https://api.kucoin.com/api/v1/prices"
-binance_tickers_url = "https://api.binance.com/api/v3/ticker/price"
+def main():
+    #  Получим данные бирж.
+    kucoin_tickers_url = "https://api.kucoin.com/api/v1/market/allTickers"
+    kucoin_prices_url = "https://api.kucoin.com/api/v1/prices"
+    binance_tickers_url = "https://api.binance.com/api/v3/ticker/price"
 
-kucoin_json = fetch_exchange_data(kucoin_tickers_url)
-kucoin_fiat_prices_json = fetch_exchange_data(kucoin_prices_url)
-binance_json = fetch_exchange_data(binance_tickers_url)
+    kucoin_json = fetch_exchange_data(kucoin_tickers_url)
+    kucoin_fiat_prices_json = fetch_exchange_data(kucoin_prices_url)
+    binance_json = fetch_exchange_data(binance_tickers_url)
+    if not kucoin_json or not kucoin_fiat_prices_json or not binance_json:
+        print("Не удалось получить данные с бирж. Программа будет завершена.")
+        exit()
 
-dump_json_to_file(kucoin_json, 'kucoin_prices.json', 'Данные цен по парам биржи Kucoin сохранены в файл kucoin_prices.json')
-dump_json_to_file(kucoin_fiat_prices_json, 'kucoin_fiat_prices.json', 'Данные фиатных цен по парам биржи Kucoin сохранены в файл kucoin_fiat_prices.json')
-dump_json_to_file(binance_json, 'binance_prices.json', 'Данные цен по парам биржи Binance сохранены в файл binance_prices.json')
+    #  Сохранение/загрузка в файл.
+    dump_json_to_file(kucoin_json, 'kucoin_prices.json', 'Данные цен по парам биржи Kucoin сохранены в файл kucoin_prices.json')
+    dump_json_to_file(kucoin_fiat_prices_json, 'kucoin_fiat_prices.json', 'Данные фиатных цен по парам биржи Kucoin сохранены в файл kucoin_fiat_prices.json')
+    dump_json_to_file(binance_json, 'binance_prices.json', 'Данные цен по парам биржи Binance сохранены в файл binance_prices.json')
 
-kucoin_data = load_json_from_file('kucoin_prices.json')
-kucoin_prices = load_json_from_file('kucoin_fiat_prices.json')
-binance_data = load_json_from_file('binance_prices.json')
+    kucoin_data = load_json_from_file('kucoin_prices.json')
+    kucoin_prices = load_json_from_file('kucoin_fiat_prices.json')
+    binance_data = load_json_from_file('binance_prices.json')
 
-spread_threshold = 15  # Порог спреда, после которого арбитраж становится интересным
+    spread_threshold = 10  # Порог спреда, после которого арбитраж становится интересным.
+    number_pairs_in_top = 30  # Количество торговых пар в топе.
 
-exchanges_spreads = calculate_spreads(kucoin_data, binance_data, kucoin_prices)
-ranked_spreads = spreads_data_ranking(exchanges_spreads)
-display_top_spreads(ranked_spreads, spread_threshold, 30)
+    # Расчет спредов > ранжирование спредов > вывод топа пар для спреда.
+    exchanges_spreads = calculate_spreads(kucoin_data, binance_data, kucoin_prices)
+    ranked_spreads = spreads_data_ranking(exchanges_spreads)
+    display_top_spreads(ranked_spreads, spread_threshold, number_pairs_in_top)
+
+
+if __name__ == '__main__':
+    main()
