@@ -2,6 +2,7 @@ import requests
 import json
 import time
 
+
 def handle_http_error(http_error):
     status_code = http_error.response.status_code if http_error.response else None
     if status_code == 400:
