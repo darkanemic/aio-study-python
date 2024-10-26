@@ -21,7 +21,6 @@ async def main():
     # Замерим асинхронное выполнение
     asynchronous_start_time = time.time()
     for number in range(0, len(numbers_list)):
-
         tasks.append(
             asyncio.create_task(
                 multiplication_by_two(numbers_list[number], pauses_list[number])
