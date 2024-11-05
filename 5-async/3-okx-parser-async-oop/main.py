@@ -116,9 +116,6 @@ class OkxAPI(ExchangeAPI):
     async def generate_tickers_dict(self):
         if self.spot_data is None:
             self.spot_data = await self.request_spot_data()
-        if self.spot_data is None:
-            print("❌ Не удалось получить данные тикеров.")
-            return None
 
         self.tickers_dict = {item["instId"]: item for item in self.spot_data["data"]}
         return True
@@ -132,6 +129,7 @@ class OkxAPI(ExchangeAPI):
             return float(tickers_dict[ticker]["last"])
         else:
             print(f"❌ Тикер {ticker} не найден.")
+            return None
 
     async def get_price_from_request(self, ticker):
         request_response = await self.request_ticker_data(ticker)
@@ -296,7 +294,7 @@ async def main():
     tickers_quantity = len(tickers_list)
     print(f"📣 Всего на бирже найдено {tickers_quantity} тикеров. ")
 
-    # Спросим количество тикеров а которых будем тестировать
+    # Спросим количество тикеров на которых будем тестировать
     tickers_num = ask_number_in_range(
         f"\nВведите количество тикеров на котором будем тестировать (от 1 до {tickers_quantity}): ",
         1,

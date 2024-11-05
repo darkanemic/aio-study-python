@@ -116,9 +116,6 @@ class OkxAPI(ExchangeAPI):
     async def generate_tickers_dict(self):
         if self.spot_data is None:
             self.spot_data = await self.request_spot_data()
-        if self.spot_data is None:
-            print("❌ Не удалось получить данные тикеров.")
-            return None
 
         self.tickers_dict = {item["instId"]: item for item in self.spot_data["data"]}
         return True
@@ -132,6 +129,7 @@ class OkxAPI(ExchangeAPI):
             return float(tickers_dict[ticker]["last"])
         else:
             print(f"❌ Тикер {ticker} не найден.")
+            return None
 
     async def get_price_from_request(self, ticker):
         request_response = await self.request_ticker_data(ticker)
@@ -269,7 +267,7 @@ async def one_request_algorithm(api, tickers_list):
 
 
 async def many_requests_algorithm(api, tickers_list):
-    semaphore = asyncio.Semaphore(20)  # Ограничиваем до X запросов в секунду
+    semaphore = asyncio.Semaphore(5)  # Ограничиваем до X запросов в секунду
     print(f"\n🚀 Запускаем many_request_algorithm")
     tasks = [get_price_limited(api, ticker, semaphore) for ticker in tickers_list]
     prices = await asyncio.gather(*tasks)
