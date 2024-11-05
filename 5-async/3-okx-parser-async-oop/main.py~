@@ -269,7 +269,7 @@ async def one_request_algorithm(api, tickers_list):
 
 
 async def many_requests_algorithm(api, tickers_list):
-    semaphore = asyncio.Semaphore(5)  # Ограничиваем до X запросов в секунду
+    semaphore = asyncio.Semaphore(20)  # Ограничиваем до X запросов в секунду
     print(f"\n🚀 Запускаем many_request_algorithm")
     tasks = [get_price_limited(api, ticker, semaphore) for ticker in tickers_list]
     prices = await asyncio.gather(*tasks)
