@@ -1,5 +1,5 @@
 from .base_api import ExchangeAPI
 from .exchanges.okx_api import OkxAPI
+from .exchanges.binance_api import BinanceAPI
 
-# Экспортируем классы для удобного доступа при импорте пакета
-__all__ = ["ExchangeAPI", "OkxAPI"]
+__all__ = ["ExchangeAPI", "OkxAPI", "BinanceAPI"]

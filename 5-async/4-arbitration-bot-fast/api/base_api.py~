@@ -61,7 +61,7 @@ class ExchangeAPI(ABC):
     async def load_spot_data(self, file_path):
         try:
             data = await load_json_from_file(file_path)
-            logger.info(f"✅ SPOT данные успешно загружены из файла {file_path}")
+            logger.info(f"✅ Данные успешно загружены из файла {file_path}")
             return data
         except Exception as e:
             logger.error(f"❌ Ошибка при загрузке данных из файла: {e}")
