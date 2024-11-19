@@ -46,9 +46,10 @@ async def main():
         hash_hex = convert_hash_to_hex(block_info["hash"])
         transactions_number = len(block_info["transactions"])
         print(f"ℹ️ Информация о блоке: {block_number}")
-        print(f"    Хеш блока: {hash_hex}")
-        print(f"    Время создания блока: {timestamp}")
-        print(f"    Количество транзакций в блоке: {transactions_number}")
+        print(block_info["transactions"])
+        print(f"        Хеш блока: {hash_hex}")
+        print(f"        Время создания блока: {timestamp}")
+        print(f"        Количество транзакций в блоке: {transactions_number}")
     else:
         print("❌ Не удалось подключиться к провайдеру. Проверьте соединение и RPC. ")
 
