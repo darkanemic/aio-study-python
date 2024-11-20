@@ -91,7 +91,7 @@ def rank_spreads_data(spreads_data):
     ranked_data = sorted(spreads_data, key=lambda x: x["spread_percent"], reverse=True)
     return ranked_data
 
-if 
+
 def print_line():
     print("-" * 101)
 
