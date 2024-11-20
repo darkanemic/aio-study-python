@@ -54,7 +54,6 @@ async def main():
         )
         return
 
-    # 1
     address = await get_address(w3_async)
 
     balances = await get_balance(w3_async, address)
