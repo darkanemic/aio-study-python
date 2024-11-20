@@ -1,0 +1,19 @@
+# Системные файлы
+.DS_Store
+
+# Файлы среды разработки PyCharm
+.idea/
+.vscode/
+
+# Виртуальные окружения
+env/
+venv/
+
+# Логи и кэш
+*.log
+__pycache__/
+*.pyc
+
+*.json
+*.time
+.env
