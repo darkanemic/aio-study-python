@@ -3,6 +3,7 @@ import os
 import getpass
 from web3 import Web3
 
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'core')))
 import asyncio
 from core import W3Client, logger, is_value_valid, wait_until_confirm
@@ -28,6 +29,7 @@ def set_client_address(w3_client, message):
             logger.warning("\n⚠️ Выполнение прервано пользователем.")
             sys.exit(130)
 
+
 def set_client_private_key(w3_client, message):
     while True:
         try:
@@ -47,6 +49,7 @@ def set_client_private_key(w3_client, message):
             sys.exit(130)
         return True
 
+
 def get_amount_to_send(message):
     while True:
         try:
@@ -65,32 +68,59 @@ async def update_balance(w3_client):
     balance_eth = w3_client.w3.from_wei(balance_wei, 'ether')
     return balance_wei, balance_eth
 
+async def get_gas_quantity(w3_client, transaction):
+    try:
+        gas = int((await w3_client.w3.eth.estimate_gas(transaction)) * 1.5)
+    except ValueError as e:
+        if "insufficient funds" in str(e):
+            logger.error("❌ Недостаточно средств для выполнения транзакции. Пополните баланс или уменьшите сумму перевода.")
+            return False
+        else:
+            logger.error(f"❌ Ошибка оценки газа: {str(e)}")
+            return False
+    return gas
+
+
 async def main():
     base_url = "https://arbitrum.llamarpc.com"
     explorer_url = "https://arbiscan.io"
     proxy = None
+    eip_1559 = True
+
 
     logger.warning("⚠️ Для запуска желательно использовать терминал, вместо консоли IDE, в этом случае ввод приватного ключа будет скрыт.")
-    async with W3Client(base_url, explorer_url, proxy, "Sender") as sender, \
-               W3Client(base_url, explorer_url, proxy, "Recipient") as recipient:
+    async with W3Client(base_url, explorer_url, proxy, "Sender", eip_1559) as sender, \
+               W3Client(base_url, explorer_url, proxy, "Recipient", eip_1559) as recipient:
 
         set_client_address(sender, "📢 Введите адрес отправителя :")
         set_client_private_key(sender, "📢 Введите приватный ключ отправителя (⚠️ ввод будет скрыт, после ввода нажмите Enter) :")
         set_client_address(recipient, "📢 Введите адрес получателя :")
 
-        amount_eth = get_amount_to_send("📢 Введите количество Ethereum для отправки :")
-        amount_wei = sender.w3.to_wei(amount_eth, 'ether')
 
-        sender_balance_wei, sender_balance_eth = await update_balance(sender)
-        recipient_balance_wei, recipient_balance_eth = await update_balance(recipient)
+        while True:
+            sender_balance_wei, sender_balance_eth = await update_balance(sender)
+            recipient_balance_wei, recipient_balance_eth = await update_balance(recipient)
 
-        logger.info(f"💰 Баланс отправителя: {sender_balance_eth:.5f} eth")
-        logger.info(f"💰 Баланс получателя: {recipient_balance_eth:.5f} eth")
+            logger.info(f"💰 Баланс отправителя: {sender_balance_eth:.5f} eth")
+            logger.info(f"💰 Баланс получателя: {recipient_balance_eth:.5f} eth")
 
-        transaction = await sender.prepare_tx(recipient.address, amount_eth)
+            amount_eth = get_amount_to_send("📢 Введите количество Ethereum для отправки (не более чем на балансе отправителя + расходы на газ) :")
+            amount_wei = sender.w3.to_wei(amount_eth, 'ether')
 
-        gas_cost_wei = int((await sender.w3.eth.estimate_gas(transaction)) * 1.5)
-        gas_cost_eth = sender.w3.from_wei(gas_cost_wei, 'ether')
+            transaction = await sender.prepare_tx(recipient.address, amount_eth)
+
+            gas = await get_gas_quantity(sender, transaction)
+
+            if not gas:
+                continue
+            break
+
+        if eip_1559:
+            gas_cost_wei = transaction['maxFeePerGas'] * gas
+            gas_cost_eth = sender.w3.from_wei(gas_cost_wei, 'ether')
+        else:
+            gas_cost_wei = transaction['gasPrice'] * gas
+            gas_cost_eth = sender.w3.from_wei(gas_cost_wei, 'ether')
 
         total_cost_wei = float(amount_wei) + gas_cost_wei
 

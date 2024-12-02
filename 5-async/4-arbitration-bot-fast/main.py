@@ -152,6 +152,5 @@ async def main():
         # выведем результаты в консоль
         print_profitable_tickers(ranked_spreads_data, spread_threshold)
 
-
 if __name__ == "__main__":
     asyncio.run(main())
