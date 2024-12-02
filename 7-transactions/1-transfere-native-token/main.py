@@ -124,29 +124,21 @@ async def main():
 
         total_cost_wei = float(amount_wei) + gas_cost_wei
 
-        if sender_balance_wei > float(amount_wei):
-            #logger.info(f"✅ Средств на кошельке достаточно для отправки.")
-            if sender_balance_wei  > total_cost_wei:
+        logger.info(f"ℹ️ Будем отправлять {amount_eth} eth с кошелька {sender.address} на кошелек {recipient.address}")
+        logger.info(f"ℹ️ {gas_cost_eth:.20f} eth плата за газ. ✅ Средств на кошельке достаточно для отправки. ✅ Средств достаточно для покрытия платы за газ.")
 
-                logger.info(f"ℹ️ Будем отправлять {amount_eth} eth с кошелька {sender.address} на кошелек {recipient.address}")
-                logger.info(f"ℹ️ {gas_cost_eth:.20f} eth плата за газ. ✅ Средств на кошельке достаточно для отправки. ✅ Средств достаточно для покрытия платы за газ.")
+        if wait_until_confirm("📢 Подтвердите отправку средств (y/n): "):
+            tx_hash = await sender.sign_and_send_tx(transaction)
+            await sender.wait_tx(tx_hash)
 
-                if wait_until_confirm("📢 Подтвердите отправку средств (y/n): "):
-                    tx_hash = await sender.sign_and_send_tx(transaction)
-                    await sender.wait_tx(tx_hash)
+            sender_balance_wei, sender_balance_eth = await update_balance(sender)
+            recipient_balance_wei, recipient_balance_eth = await update_balance(recipient)
 
-                    sender_balance_wei, sender_balance_eth = await update_balance(sender)
-                    recipient_balance_wei, recipient_balance_eth = await update_balance(recipient)
-
-                    logger.info(f"💰 Баланс отправителя: {sender_balance_eth:.5f} eth")
-                    logger.info(f"💰 Баланс получателя: {recipient_balance_eth:.5f} eth")
-                    logger.success(f"✅️ Успешно отправлено {amount_eth} eth с кошелька {sender.address} на кошелек {recipient.address}")
-                else:
-                    logger.warning("️📢 Пользователь отказался от подтверждения транзакции.")
-            else:
-                logger.error(f"❌ Но не хватает для покрытия платы за газ. Уменьшите отправляемую сумму или пополните баланс.")
+            logger.info(f"💰 Баланс отправителя: {sender_balance_eth:.5f} eth")
+            logger.info(f"💰 Баланс получателя: {recipient_balance_eth:.5f} eth")
+            logger.success(f"✅️ Успешно отправлено {amount_eth} eth с кошелька {sender.address} на кошелек {recipient.address}")
         else:
-            logger.error(f"❌ Недостаточно средств на кошельке {sender.address}.")
+            logger.warning("️📢 Пользователь отказался от подтверждения транзакции.")
 
 
 if __name__ == '__main__':
