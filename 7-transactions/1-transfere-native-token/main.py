@@ -68,17 +68,20 @@ async def update_balance(w3_client):
     balance_eth = w3_client.w3.from_wei(balance_wei, 'ether')
     return balance_wei, balance_eth
 
-async def get_gas_quantity(w3_client, transaction):
+async def quantity_check(w3_client, transaction):
+    """
+    Эта функция поможет нам понять - не превышает ли (сумму перевода + gas), баланс отправителя.
+    """
     try:
-        gas = int((await w3_client.w3.eth.estimate_gas(transaction)) * 1.5)
+        check = int((await w3_client.w3.eth.estimate_gas(transaction)) * 1.5)
     except ValueError as e:
         if "insufficient funds" in str(e):
             logger.error("❌ Недостаточно средств для выполнения транзакции. Пополните баланс или уменьшите сумму перевода.")
             return False
         else:
-            logger.error(f"❌ Ошибка оценки газа: {str(e)}")
+            logger.error(f"❌ Ошибка оценки: {str(e)}")
             return False
-    return gas
+    return check
 
 
 async def main():
@@ -109,7 +112,7 @@ async def main():
 
             transaction = await sender.prepare_tx(recipient.address, amount_eth)
 
-            gas = await get_gas_quantity(sender, transaction)
+            gas = await quantity_check(sender, transaction)
 
             if not gas:
                 continue
