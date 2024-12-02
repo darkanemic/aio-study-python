@@ -125,7 +125,6 @@ async def main():
             gas_cost_wei = transaction['gasPrice'] * gas
             gas_cost_eth = sender.w3.from_wei(gas_cost_wei, 'ether')
 
-        total_cost_wei = float(amount_wei) + gas_cost_wei
 
         logger.info(f"ℹ️ Будем отправлять {amount_eth} eth с кошелька {sender.address} на кошелек {recipient.address}")
         logger.info(f"ℹ️ {gas_cost_eth:.20f} eth плата за газ. ✅ Средств на кошельке достаточно для отправки. ✅ Средств достаточно для покрытия платы за газ.")
