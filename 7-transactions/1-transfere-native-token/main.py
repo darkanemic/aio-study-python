@@ -99,7 +99,6 @@ async def main():
         set_client_private_key(sender, "📢 Введите приватный ключ отправителя (⚠️ ввод будет скрыт, после ввода нажмите Enter) :")
         set_client_address(recipient, "📢 Введите адрес получателя :")
 
-
         while True:
             sender_balance_wei, sender_balance_eth = await update_balance(sender)
             recipient_balance_wei, recipient_balance_eth = await update_balance(recipient)
@@ -124,7 +123,6 @@ async def main():
         else:
             gas_cost_wei = transaction['gasPrice'] * gas
             gas_cost_eth = sender.w3.from_wei(gas_cost_wei, 'ether')
-
 
         logger.info(f"ℹ️ Будем отправлять {amount_eth} eth с кошелька {sender.address} на кошелек {recipient.address}")
         logger.info(f"ℹ️ {gas_cost_eth:.20f} eth плата за газ. ✅ Средств на кошельке достаточно для отправки. ✅ Средств достаточно для покрытия платы за газ.")
